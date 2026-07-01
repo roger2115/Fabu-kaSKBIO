@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<title>SCP-FOUNDATION SECURE TERMINAL // SITE-19</title>
+<title>SCP-FOUNDATION SECURE TERMINAL</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
 
@@ -206,7 +206,7 @@
   <!-- LOCKED -->
   <div class="pane" id="lockedScreen">
     <div class="big">TERMINAL ZABLOKOWANY</div>
-    <div style="color:var(--blood); font-size:14px; max-width:480px;">Przekroczono liczbę dozwolonych prób. Protokół bezpieczeństwa Site-19 wymaga fizycznej reautoryzacji terminala przez personel poziomu 4.</div>
+    <div style="color:var(--blood); font-size:14px; max-width:480px;">Przekroczono liczbę dozwolonych prób. Protokół bezpieczeństwa wymaga fizycznej reautoryzacji terminala przez personel poziomu 4.</div>
     <button class="term-btn" onclick="location.reload()">↻ ZRESTARTUJ TERMINAL</button>
   </div>
 
@@ -286,10 +286,10 @@ function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const
    DATA: FILES
 ============================================================ */
 const FILES = [
-  { id:'2020', name:'Subject 2020 — "Sarkcism"', desc:'ERROR // szyfrowanie: klucz biometryczny', game:'word', fragment:'6' },
-  { id:'610',  name:'SCP-610 — "Red Death"', desc:'SCP-610 // szyfrowanie: sekwencja pól obserwacyjnych', game:'simon', fragment:'7' },
-  { id:'6013', name:'SCP-6013 — "Lewiatan Morza Egejskiego"', desc:'Lewiatan // szyfrowanie: modulacja sygnału Soonsaran', game:'slider', fragment:'5' },
-  { id:'2408', name:'SCP-2408 — "Karnomancja"', desc:'SCP-2408 // szyfrowanie: macierz węzłów bezpieczeństwa', game:'wire', fragment:'8' },
+  { id:'2020', name:'Subject 2020 — "Sarkcism"', desc:'klucz: 6 // dane uszkodzone', game:'word', fragment:'6' },
+  { id:'610',  name:'ERROR-7291 — [NAZWA USZKODZONA]', desc:'klucz: 7 // dane uszkodzone', game:'simon', fragment:'7' },
+  { id:'6013', name:'ERROR-5483 — [NAZWA USZKODZONA]', desc:'klucz: 5 // dane uszkodzone', game:'slider', fragment:'5' },
+  { id:'2408', name:'ERROR-8016 — [NAZWA USZKODZONA]', desc:'klucz: 8 // dane uszkodzone', game:'wire', fragment:'8' },
 ];
 const state = { unlocked:{}, currentFile:null };
 FILES.forEach(f=> state.unlocked[f.id]=false);
@@ -708,7 +708,6 @@ function launchFinalHack(){
         switchPane('hack','grantedIntro');
         document.getElementById('grantedSub').textContent = 'rekonstrukcja danych telemetrycznych...';
         setTimeout(()=>{
-          document.getElementById('mapLink').href='https://maps.app.goo.gl/Zo4EKD1svyEJS2RXA';
           switchPane('grantedIntro','clownGate');
           document.getElementById('clownPass').value='';
           document.getElementById('clownErr').textContent='';
@@ -742,6 +741,7 @@ async function checkClownPassword(){
   if(hash === CLOWN_PASS_HASH){
     err.style.color = 'var(--green)';
     err.textContent = 'HASŁO POPRAWNE.';
+    document.getElementById('mapLink').href='https://maps.app.goo.gl/Zo4EKD1svyEJS2RXA';
     setTimeout(()=> switchPane('clownGate','finalReveal'), 500);
   } else {
     err.style.color = 'var(--blood)';
@@ -763,60 +763,59 @@ const DOSSIERS = {
     <div class="dossier-head"><h1>SUBJECT 2020 — "CARNIS"</h1><div class="objclass">KLASA OBIEKTU<br><b>KETER</b></div></div>
     <div class="dossier">
       <h2>PROCEDURY SPECJALNEGO PRZETRZYMANIA</h2>
-      <p>Subject 2020 jest przetrzymywany w komorze biologicznej C-19 wyłożonej stopem odpornym na trawienie enzymatyczne. Komora utrzymywana jest w stałej temperaturze 4°C, co ogranicza tempo regeneracji tkanki obiektu do poziomu poniżej progu krytycznego.</p>
-      <p>Dostarczanie biomasy odbywa się wyłącznie przez zdalnie sterowany podajnik. Bezpośredni kontakt fizyczny z Subject 2020 jest surowo zabroniony.</p>
+      <p style="color:var(--blood);">[ERROR: DANE USZKODZONE - ODZYSKIWANIE NIEMOŻLIWE]</p>
+      <p style="color:var(--blood);">[ERROR: SEKTOR PAMIĘCI USZKODZONY]</p>
       <h2>OPIS</h2>
-      <p>Subject 2020 "Carnis" to bezkształtna masa tkanki organicznej o nieustalonym pochodzeniu, zdolna do ciągłej regeneracji i powolnej reorganizacji własnej struktury. Analiza histologiczna wykazuje obecność komórek charakterystycznych dla wielu gatunków jednocześnie.</p>
-      <p>Fragmenty odcięte od głównej masy zachowują zdolność do niezależnego, powolnego ruchu przez okres do 72 godzin — jakby cały obiekt współdzielił jedną, rozproszoną świadomość.</p>
+      <p style="color:var(--blood);">[ERROR: BRAK DOSTĘPU DO PEŁNYCH DANYCH]</p>
+      <p style="color:var(--blood);">[ERROR: FRAGMENTY REKORDÓW UTRACONE]</p>
       <div class="fragmentbox">KLUCZ POZYSKANY: <b>6</b> — wymagany do rekonstrukcji lokalizacji</div>
-      <div class="footer-stamp">— PLIK WEWNĘTRZNY SITE-19 —</div>
+      <div class="footer-stamp">— DANE ŹRÓDŁOWE USZKODZONE —</div>
     </div>`
 },
 '610': {
-  path:'/ARCHIVE/RESTRICTED/BIO-CLASS/610-PLAGA.decrypted',
+  path:'/ARCHIVE/RESTRICTED/BIO-CLASS/ERROR-7291.corrupted',
   html:`
-    <div class="dossier-head"><h1>SCP-610 — "Plaga Ciała"</h1><div class="objclass">KLASA OBIEKTU<br><b>KETER</b></div></div>
+    <div class="dossier-head"><h1>ERROR-7291 — [NAZWA USZKODZONA]</h1><div class="objclass">KLASA OBIEKTU<br><b>KETER</b></div></div>
     <div class="dossier">
       <h2>PROCEDURY SPECJALNEGO PRZETRZYMANIA</h2>
-      <p>Ze względu na rozległość obszaru "infekcji", pełne przetrzymanie SCP-610 jest niemożliwe. Zamiast tego stosuje się izolację regionu w okolicach jeziora Bajkał w południowej Syberii, prowadzoną pod pozorem operacji wojskowej.</p>
-      <p>Każdy organizm wykazujący cechy zakażenia jest neutralizowany z dystansu bronią palną, a następnie spalany. Jakikolwiek fizyczny kontakt z zakażonym skutkuje natychmiastową eliminacją i kremacją.</p>
+      <p style="color:var(--blood);">[ERROR: DANE USZKODZONE - ODZYSKIWANIE NIEMOŻLIWE]</p>
+      <p style="color:var(--blood);">[ERROR: SEKTOR PAMIĘCI USZKODZONY]</p>
       <h2>OPIS</h2>
-      <p>SCP-610 to zaraźliwa choroba skóry, która w ciągu kilku godzin pokrywa ofiarę bliznowatą tkanką, zatrzymuje funkcje życiowe na około trzy minuty, po czym "restartuje" ciało w stanie znacznie przyspieszonej aktywności.</p>
-      <p>Zainfekowani zaczynają następnie rosnąć w nieprzewidywalny sposób — dodatkowe kończyny, zniekształcone czaszki, rozgałęzienia tkanki — zanim ostatecznie zakorzenią się w jednym miejscu i zaczną porastać otoczenie, tworząc środowisko sprzyjające dalszemu rozrostowi kolonii.</p>
-      <p>Pod porośniętymi osadami odkryto rozległe jaskinie, do których eksploracji wciąż trwają przygotowania personelu badawczego.</p>
+      <p style="color:var(--blood);">[ERROR: BRAK DOSTĘPU DO PEŁNYCH DANYCH]</p>
+      <p style="color:var(--blood);">[ERROR: FRAGMENTY REKORDÓW UTRACONE]</p>
+      <p style="color:var(--blood);">[ERROR: KORUPCJA DANYCH KRYTYCZNA]</p>
       <div class="fragmentbox">KLUCZ POZYSKANY: <b>7</b> — wymagany do rekonstrukcji lokalizacji</div>
-      <div class="footer-stamp">na podstawie artykułu "SCP-610" (autor: NekoChris, SCP Wiki, CC BY-SA 3.0)</div>
+      <div class="footer-stamp">— DANE ŹRÓDŁOWE USZKODZONE —</div>
     </div>`
 },
 '6013': {
-  path:'/ARCHIVE/RESTRICTED/BIO-CLASS/6013-LEWIATAN.decrypted',
+  path:'/ARCHIVE/RESTRICTED/BIO-CLASS/ERROR-5483.corrupted',
   html:`
-    <div class="dossier-head"><h1>SCP-6013 — "Lewiatan Morza Egejskiego"</h1><div class="objclass">KLASA OBIEKTU<br><b>KETER</b></div></div>
+    <div class="dossier-head"><h1>ERROR-5483 — [NAZWA USZKODZONA]</h1><div class="objclass">KLASA OBIEKTU<br><b>KETER</b></div></div>
     <div class="dossier">
       <h2>NOTA WSTĘPNA</h2>
-      <p>Dostęp do pełnej dokumentacji Protokołu Rosetta zastrzeżony jest dla personelu poziomu 4 oraz jednostek Sitra Achra. Poniższy wyciąg stanowi jedynie streszczenie ogólnego kontekstu operacyjnego.</p>
+      <p style="color:var(--blood);">[ERROR: PROTOKÓŁ ROSETTA - DOSTĘP ZABLOKOWANY]</p>
       <h2>OPIS</h2>
-      <p>SCP-6013, kryptonim "Alkonost", to inteligentna, wrogo nastawiona makroforma zamieszkująca dno Morza Karskiego, odkryta pierwotnie przez radziecki program badawczy w latach 70. Obiekt komunikuje się w złożonym języku określanym jako Soonsaran — kombinacji sygnałów dźwiękowych i świetlnych o charakterze religijnym, bliżej modlitwy i groźby niż rozmowy.</p>
-      <p>Placówka Site-82 utrzymuje stały zespół tłumaczy, naukowców i negocjatorów, których zadaniem jest interpretacja przekazów obiektu oraz opóźnianie realizacji jego pierwotnego przeznaczenia — przekształcenia światowych oceanów w środowisko nieprzyjazne znanym formom życia.</p>
-      <p>Kontakt z SCP-6013 wiąże się z poważnym ryzykiem psychologicznym i fizycznym dla personelu; obiekt zdolny jest wpływać na zachowanie osób znajdujących się w jego bezpośrednim otoczeniu.</p>
+      <p style="color:var(--blood);">[ERROR: DANE USZKODZONE - ODZYSKIWANIE NIEMOŻLIWE]</p>
+      <p style="color:var(--blood);">[ERROR: FRAGMENTY REKORDÓW UTRACONE]</p>
       <div class="fragmentbox">KLUCZ POZYSKANY: <b>5</b> — wymagany do rekonstrukcji lokalizacji</div>
-      <div class="footer-stamp">na podstawie artykułu "SCP-6013" (autor: Rhys Tanner, SCP Wiki, CC BY-SA 3.0)</div>
+      <div class="footer-stamp">— DANE ŹRÓDŁOWE USZKODZONE —</div>
     </div>`
 },
 '2408': {
-  path:'/ARCHIVE/RESTRICTED/BIO-CLASS/2408-CZARNALOZA.decrypted',
+  path:'/ARCHIVE/RESTRICTED/BIO-CLASS/ERROR-8016.corrupted',
   html:`
-    <div class="dossier-head"><h1>SCP-2408 — "Czarna Loża Łowców"</h1><div class="objclass">KLASA OBIEKTU<br><b>KETER</b></div></div>
+    <div class="dossier-head"><h1>ERROR-8016 — [NAZWA USZKODZONA]</h1><div class="objclass">KLASA OBIEKTU<br><b>KETER</b></div></div>
     <div class="dossier">
       <h2>PROCEDURY SPECJALNEGO PRZETRZYMANIA</h2>
-      <p>Fundacja infiltruje organy ścigania na obszarach podejrzewanych o działalność GoI-0432. Grupa Zadaniowa Psi-13 ("Łowcy Czarownic") odpowiada za identyfikację i eliminację jej członków; ujęci żywcem podlegają przesłuchaniu przed eliminacją.</p>
-      <p>Grupa Zadaniowa Psi-9 ("Patrzący w Otchłań") zabezpiecza podziemny kompleks SCP-2408-3 pod Moskwą — osoby próbujące uzyskać nieautoryzowany dostęp mają być eliminowane na miejscu.</p>
+      <p style="color:var(--blood);">[ERROR: DANE USZKODZONE - ODZYSKIWANIE NIEMOŻLIWE]</p>
+      <p style="color:var(--blood);">[ERROR: OPERACJA FALKENRATH - DOSTĘP ZABLOKOWANY]</p>
       <h2>OPIS</h2>
-      <p>SCP-2408 obejmuje szereg anomalii powiązanych z GoI-0432, przestępczo-kultową organizacją sarkicką działającą głównie na terenach postradzieckich. Jej członkowie (SCP-2408-1) są zdolni do gwałtownej fizycznej transformacji — wzrostu masy mięśniowej, gęstości kości oraz pojawienia się cech zwierzęcych (wilcze, kozie, niedźwiedzie i inne), przy zachowaniu zdolności odwrócenia zmian.</p>
-      <p>Organizacja handluje anomalnymi substancjami pozyskiwanymi z organizmu SCP-2408-4 — humanoidalnej istoty o długości około 300 metrów, odnalezionej pod megalityczną świątynią SCP-2408-3 głęboko pod Moskwą. Istota pozostaje unieruchomiona, prawdopodobnie martwa mózgowo, lecz częściowo wciąż się regeneruje.</p>
-      <p>Dochodzenie prowadzone w ramach OPERACJI FALKENRATH ujawniło rytualny, hierarchiczny charakter organizacji oraz istnienie starożytnej osady sarkickiej pod nazwą "Upadek Oroka", na której gruzach zbudowano współczesną Moskwę.</p>
+      <p style="color:var(--blood);">[ERROR: BRAK DOSTĘPU DO PEŁNYCH DANYCH]</p>
+      <p style="color:var(--blood);">[ERROR: FRAGMENTY REKORDÓW UTRACONE]</p>
+      <p style="color:var(--blood);">[ERROR: KORUPCJA DANYCH KRYTYCZNA]</p>
       <div class="fragmentbox">KLUCZ POZYSKANY: <b>8</b> — wymagany do rekonstrukcji lokalizacji</div>
-      <div class="footer-stamp">na podstawie artykułu "SCP-2408" (autor: Metaphysician, SCP Wiki, CC BY-SA 3.0)</div>
+      <div class="footer-stamp">— DANE ŹRÓDŁOWE USZKODZONE —</div>
     </div>`
 }
 };
