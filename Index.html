@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>SCP-FOUNDATION SECURE TERMINAL // SITE-19</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
+
+  :root{
+    --bg:#050805;
+    --green:#3fd93f;
+    --green-dim:#1c5c1c;
+    --green-glow: rgba(63,217,63,0.55);
+    --amber:#ffb000;
+    --blood:#a3231f;
+    --blood-glow: rgba(163,35,31,0.65);
+    --blue:#7fd1ff;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%; background:var(--bg); font-family:'Share Tech Mono', monospace; color:var(--green); overflow:hidden;}
+
+  #crt{ position:fixed; inset:0; background:radial-gradient(ellipse at center, rgba(20,40,20,0.25) 0%, rgba(0,0,0,0.85) 100%); display:flex; align-items:center; justify-content:center; }
+  #screen{ position:relative; width:min(1040px, 96vw); height:min(700px, 94vh); background:#030603; border:2px solid #123312; border-radius:14px;
+    box-shadow: 0 0 0 6px #060906, 0 0 40px rgba(0,0,0,0.9), inset 0 0 80px rgba(63,217,63,0.06); overflow:hidden; }
+  #screen::before{ content:""; position:absolute; inset:0; background:repeating-linear-gradient(to bottom, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 2px, transparent 3px); pointer-events:none; z-index:50; mix-blend-mode:multiply; }
+  #screen::after{ content:""; position:absolute; inset:0; box-shadow: inset 0 0 120px 30px rgba(0,0,0,0.85); pointer-events:none; z-index:51; animation:flicker 6s infinite; }
+  @keyframes flicker{ 0%,96%,100%{opacity:1;} 97%{opacity:0.85;} 98%{opacity:1;} 99%{opacity:0.9;} }
+
+  .pane{ position:absolute; inset:0; padding:24px 28px; display:none; flex-direction:column; text-shadow:0 0 6px var(--green-glow); }
+  .pane.active{ display:flex; }
+
+  .topbar{ display:flex; justify-content:space-between; align-items:center; font-family:'VT323', monospace; font-size:19px; letter-spacing:2px; color:var(--green-dim); border-bottom:1px solid var(--green-dim); padding-bottom:8px; margin-bottom:12px; flex-shrink:0; }
+  .topbar .live{ color:var(--amber); }
+
+  /* BOOT */
+  #boot pre{ font-size:12px; line-height:1.15; color:var(--green-dim); margin-bottom:10px; white-space:pre; }
+  #bootLog{ font-size:15px; line-height:1.5; flex:1; overflow:hidden; }
+  .bootline{ opacity:0; animation:appear .05s forwards; }
+  .bootline .ok{ color:var(--green); } .bootline .warn{ color:var(--amber); }
+  @keyframes appear{ to{opacity:1;} }
+
+  /* BROWSER */
+  #browser h1{ font-family:'VT323', monospace; font-size:28px; letter-spacing:3px; color:var(--green); margin-bottom:4px; }
+  #browser .sub{ font-size:13px; color:var(--green-dim); margin-bottom:18px; }
+  .filelist{ display:flex; flex-direction:column; gap:10px; overflow-y:auto; }
+  .file{ display:flex; align-items:center; gap:14px; border:1px solid var(--green-dim); padding:12px 16px; cursor:pointer; background:rgba(63,217,63,0.02); transition:.15s; font-size:14px; }
+  .file:hover{ background:rgba(63,217,63,0.08); border-color:var(--green); transform:translateX(3px); }
+  .file.locked{ border-color:var(--blood); box-shadow:0 0 14px -4px var(--blood-glow) inset; }
+  .file.locked:hover{ background:rgba(163,35,31,0.10); border-color:var(--blood); }
+  .file.done{ border-color:var(--green); box-shadow:0 0 14px -4px var(--green-glow) inset; cursor:default; }
+  .file.done:hover{ transform:none; background:rgba(63,217,63,0.02); }
+  .file.special{ border-style:dashed; }
+  .file .icon{ font-size:20px; width:26px; text-align:center; color:var(--amber); }
+  .file.locked .icon{ color:var(--blood); } .file.done .icon{ color:var(--green); }
+  .file .meta{ flex:1; } .file .name{ font-weight:bold; letter-spacing:1px; }
+  .file .desc{ color:var(--green-dim); font-size:11px; margin-top:2px; }
+  .file .tag{ font-size:10px; padding:3px 8px; border:1px solid currentColor; letter-spacing:1px; white-space:nowrap; }
+  .file.locked .tag{ color:var(--blood); } .file.done .tag{ color:var(--green); }
+  .hint{ margin-top:12px; font-size:11px; color:var(--green-dim); border-top:1px dashed var(--green-dim); padding-top:10px; flex-shrink:0; }
+  .progress{ font-size:11px; color:var(--amber); margin-bottom:10px; letter-spacing:1px; }
+
+  /* HACK generic */
+  #hack .hheader{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; flex-shrink:0; }
+  #hack .htitle{ font-family:'VT323', monospace; font-size:21px; letter-spacing:2px; color:var(--blood); text-shadow:0 0 8px var(--blood-glow); }
+  #hack .attempts{ display:flex; gap:6px; align-items:center; font-size:12px; color:var(--green-dim); }
+  #hack .pip{ width:13px; height:13px; border:1px solid var(--green); }
+  #hack .pip.used{ background:var(--blood); border-color:var(--blood); box-shadow:0 0 6px var(--blood-glow); }
+  #hackArea{ flex:1; min-height:0; display:flex; gap:20px; }
+  #hackFooter{ margin-top:10px; font-size:11px; color:var(--green-dim); flex-shrink:0; }
+
+  .feedcol{ width:260px; flex-shrink:0; border:1px solid var(--green-dim); padding:10px 14px; display:flex; flex-direction:column; font-size:12px; background:rgba(0,0,0,0.3); }
+  .feedcol .feedtitle{ color:var(--green-dim); margin-bottom:8px; letter-spacing:1px; }
+  #feedlog{ flex:1; overflow-y:auto; display:flex; flex-direction:column-reverse; gap:4px; }
+  #feedlog div{ opacity:0; animation:appear .1s forwards; }
+  #feedlog .sys{ color:var(--green-dim); } #feedlog .like{ color:var(--amber); } #feedlog .bad{ color:var(--blood); } #feedlog .good{ color:var(--green); font-weight:bold; }
+
+  /* word hack (dump) */
+  .dumpcol{ flex:1; min-width:0; background:rgba(63,217,63,0.02); border:1px solid var(--green-dim); padding:10px 14px; overflow:hidden; font-size:13px; line-height:1.6; }
+  .dumpcol .addr{ color:var(--green-dim); margin-right:10px; }
+  .rowline{ white-space:pre; }
+  .tok{ cursor:pointer; padding:0 1px; }
+  .tok:hover{ background:rgba(63,217,63,0.18); }
+  .tok.word{ color:var(--amber); } .tok.word:hover{ background:rgba(255,176,0,0.18); color:#fff; }
+  .tok.bracket{ color:var(--blue); } .tok.bracket:hover{ background:rgba(127,209,255,0.18); }
+  .tok.dead{ opacity:0.18; pointer-events:none; text-decoration:line-through; }
+  .tok.wrong{ animation:shakeword .25s; color:var(--blood) !important; }
+  @keyframes shakeword{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-3px);} 75%{transform:translateX(3px);} }
+
+  /* simon */
+  .simonwrap{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px; }
+  .simongrid{ display:grid; grid-template-columns:repeat(3,100px); grid-template-rows:repeat(2,100px); gap:12px; }
+  .simontile{ border:2px solid var(--green-dim); display:flex; align-items:center; justify-content:center; font-family:'VT323',monospace; font-size:26px; color:var(--green-dim); cursor:pointer; user-select:none; transition:.08s; }
+  .simontile[data-c="0"]{ } .simontile.lit{ background:var(--green); color:#000; box-shadow:0 0 30px var(--green-glow); border-color:var(--green); }
+  .simonstatus{ font-family:'VT323',monospace; font-size:20px; letter-spacing:2px; color:var(--amber); }
+  .simonround{ font-size:12px; color:var(--green-dim); }
+
+  /* slider game */
+  .sliderwrap{ flex:1; display:flex; flex-direction:column; justify-content:center; gap:18px; }
+  .barrow{ display:flex; align-items:flex-end; gap:14px; height:180px; justify-content:center; }
+  .barcol{ display:flex; flex-direction:column; align-items:center; gap:8px; width:60px; }
+  .bartrack{ position:relative; width:34px; height:140px; border:1px solid var(--green-dim); background:rgba(63,217,63,0.03); display:flex; align-items:flex-end; }
+  .barfill{ width:100%; background:var(--amber); transition:height .1s; }
+  .barfill.correct{ background:var(--green); box-shadow:0 0 10px var(--green-glow); }
+  .barfill.wrong{ background:var(--blood); }
+  .barbtns{ display:flex; gap:6px; }
+  .barbtns button{ width:26px; height:22px; background:transparent; border:1px solid var(--green); color:var(--green); cursor:pointer; font-family:monospace; }
+  .barbtns button:hover{ background:rgba(63,217,63,0.15); }
+  .targetmark{ position:absolute; left:-4px; right:-4px; height:2px; background:var(--blue); opacity:0.5; }
+  .sliderbtn{ align-self:center; margin-top:10px; background:transparent; border:1px solid var(--amber); color:var(--amber); padding:10px 26px; letter-spacing:2px; cursor:pointer; font-family:'Share Tech Mono',monospace; }
+  .sliderbtn:hover{ background:rgba(255,176,0,0.12); }
+
+  /* wire game */
+  .wirewrap{ flex:1; display:flex; align-items:center; justify-content:center; }
+  .wiregrid{ display:flex; justify-content:space-between; width:100%; max-width:420px; }
+  .wirecolset{ display:flex; flex-direction:column; gap:18px; }
+  .wirenode{ width:52px; height:52px; border-radius:50%; border:3px solid; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:11px; color:#000; font-weight:bold; }
+  .wirenode.selected{ outline:3px solid #fff; }
+  .wirenode.done{ opacity:0.35; pointer-events:none; }
+
+  /* dial (final) */
+  .dialwrap{ flex:1; display:flex; align-items:center; justify-content:center; gap:26px; }
+  .dial{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .dial .digit{ font-family:'VT323',monospace; font-size:52px; width:70px; text-align:center; border:2px solid var(--green-dim); padding:6px 0; }
+  .dial .digit.correct{ color:var(--green); border-color:var(--green); box-shadow:0 0 12px var(--green-glow); }
+  .dial button{ width:46px; height:32px; background:transparent; border:1px solid var(--green); color:var(--green); cursor:pointer; font-family:monospace; font-size:16px; }
+  .dial button:hover{ background:rgba(63,217,63,0.15); }
+
+  /* locked / granted */
+  #lockedScreen, #grantedIntro, #finalReveal{ align-items:center; justify-content:center; text-align:center; gap:14px; }
+  #lockedScreen .big, #grantedIntro .big, #finalReveal .big{ font-family:'VT323', monospace; font-size:46px; letter-spacing:4px; }
+  #lockedScreen .big{ color:var(--blood); text-shadow:0 0 20px var(--blood-glow); animation:pulseRed 1s infinite; }
+  #grantedIntro .big{ color:var(--green); text-shadow:0 0 20px var(--green-glow); animation:pulseGreen 1s infinite; }
+  #finalReveal .big{ color:var(--blue); text-shadow:0 0 20px rgba(127,209,255,0.6); }
+  @keyframes pulseRed{ 50%{opacity:0.5;} } @keyframes pulseGreen{ 50%{opacity:0.6;} }
+  button.term-btn{ margin-top:10px; background:transparent; border:1px solid var(--green); color:var(--green); font-family:'Share Tech Mono', monospace; padding:10px 22px; letter-spacing:2px; cursor:pointer; font-size:13px; }
+  button.term-btn:hover{ background:rgba(63,217,63,0.12); }
+  #lockedScreen button.term-btn{ border-color:var(--blood); color:var(--blood); }
+  #lockedScreen button.term-btn:hover{ background:rgba(163,35,31,0.12); }
+  a.map-btn{ margin-top:14px; display:inline-block; background:rgba(127,209,255,0.08); border:1px solid var(--blue); color:var(--blue); padding:12px 26px; letter-spacing:2px; text-decoration:none; font-size:13px; }
+  a.map-btn:hover{ background:rgba(127,209,255,0.18); }
+  .coords{ font-family:'VT323',monospace; font-size:30px; letter-spacing:3px; color:var(--green); }
+
+  /* dossier */
+  #dossier{ overflow-y:auto; font-size:13.5px; line-height:1.65; }
+  #dossier::-webkit-scrollbar{ width:8px; } #dossier::-webkit-scrollbar-thumb{ background:var(--green-dim); }
+  .dossier-head{ display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--blood); padding-bottom:10px; margin-bottom:16px; }
+  .dossier-head h1{ font-family:'VT323', monospace; font-size:30px; letter-spacing:2px; color:var(--green); }
+  .dossier-head .objclass{ text-align:right; font-size:12px; color:var(--blood); border:1px solid var(--blood); padding:6px 10px; white-space:nowrap; }
+  .dossier h2{ color:var(--amber); font-size:14px; letter-spacing:2px; margin:16px 0 6px; border-bottom:1px dashed var(--green-dim); padding-bottom:3px; }
+  .dossier p{ margin-bottom:8px; color:#cfe8cf; }
+  .redacted{ background:var(--blood); color:var(--blood); padding:0 4px; user-select:none; border-radius:1px; }
+  .fragmentbox{ margin-top:18px; border:1px dashed var(--blue); padding:12px 16px; font-size:12px; color:var(--blue); }
+  .footer-stamp{ margin-top:20px; text-align:center; font-size:10.5px; color:var(--green-dim); letter-spacing:2px; border-top:1px dashed var(--green-dim); padding-top:10px; }
+  .dossierBackBtn{ margin-top:16px; }
+
+  /* CLOWN GATE */
+  #clownGate{ align-items:center; justify-content:center; text-align:center; gap:16px; }
+  #clownGate .glitchwrap{ position:relative; }
+  #clownGate svg{ width:150px; height:150px; filter:drop-shadow(0 0 18px var(--blood-glow)); animation:clownPulse 2.2s infinite; }
+  @keyframes clownPulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.035); } }
+  #clownGate .clowntitle{ font-family:'VT323', monospace; font-size:30px; letter-spacing:3px; color:var(--blood); text-shadow:0 0 16px var(--blood-glow); }
+  #clownGate .clownsub{ font-size:12.5px; color:var(--green-dim); max-width:480px; line-height:1.6; }
+  #clownGate .pwrow{ display:flex; gap:10px; align-items:center; margin-top:6px; }
+  #clownGate input#clownPass{ background:#020402; border:1px solid var(--blood); color:var(--green); font-family:'Share Tech Mono', monospace; font-size:15px; letter-spacing:2px; padding:10px 14px; width:240px; text-align:center; outline:none; }
+  #clownGate input#clownPass:focus{ box-shadow:0 0 10px var(--blood-glow); }
+  #clownGate button.term-btn{ border-color:var(--blood); color:var(--blood); }
+  #clownGate button.term-btn:hover{ background:rgba(163,35,31,0.12); }
+  #clownGate .clownerr{ font-size:11.5px; color:var(--blood); min-height:14px; letter-spacing:1px; }
+
+  ::selection{ background:var(--green); color:#000; }
+</style>
+</head>
+<body>
+<div id="crt"><div id="screen">
+
+  <!-- BOOT -->
+  <div class="pane active" id="boot">
+    <div class="topbar"><span>FOUNDATION OS // SCiP Net</span><span class="live">● SECURE LINK</span></div>
+    <pre>  ▄████▄  ▄████▄
+ ██▓  ▓██ ██▓  ▓██   FOUNDATION SCP
+ ▓██▄▄██▓ ▓██▄▄██▓   SECURE CONTAIN PROTECT
+  ▀████▀   ▀████▀</pre>
+    <div id="bootLog"></div>
+  </div>
+
+  <!-- BROWSER -->
+  <div class="pane" id="browser">
+    <div class="topbar"><span>/ARCHIVE/RESTRICTED/SK-BIO/</span><span class="live" id="clearanceLabel">CLEARANCE: 4 // ● ONLINE</span></div>
+    <h1>ARCHIWUM OBIEKTÓW — POZIOM 4</h1>
+    <div class="sub">Wybierz plik, aby otworzyć protokół deszyfrujący.</div>
+    <div class="progress" id="progressLine"></div>
+    <div class="filelist" id="filelist"></div>
+    <div class="hint">UWAGA: każdy plik chroniony jest własnym modułem szyfrującym. Błędne próby zużywają dostępne cykle deszyfrowania — przekroczenie limitu skutkuje trwałą blokadą terminala.</div>
+  </div>
+
+  <!-- HACK -->
+  <div class="pane" id="hack">
+    <div class="hheader">
+      <div class="htitle" id="hackTitle">◤ MODUŁ SZYFRUJĄCY ◢</div>
+      <div class="attempts" id="attemptsWrap">PRÓBY:</div>
+    </div>
+    <div id="hackArea"></div>
+    <div id="hackFooter"></div>
+  </div>
+
+  <!-- LOCKED -->
+  <div class="pane" id="lockedScreen">
+    <div class="big">TERMINAL ZABLOKOWANY</div>
+    <div style="color:var(--blood); font-size:14px; max-width:480px;">Przekroczono liczbę dozwolonych prób. Protokół bezpieczeństwa Site-19 wymaga fizycznej reautoryzacji terminala przez personel poziomu 4.</div>
+    <button class="term-btn" onclick="location.reload()">↻ ZRESTARTUJ TERMINAL</button>
+  </div>
+
+  <!-- GRANTED INTRO -->
+  <div class="pane" id="grantedIntro">
+    <div class="big">DOSTĘP PRZYZNANY</div>
+    <div style="font-size:13px; color:var(--green-dim);" id="grantedSub">deszyfrowanie pliku...</div>
+  </div>
+
+  <!-- DOSSIER -->
+  <div class="pane" id="dossier">
+    <div class="topbar"><span id="dossierPath">/ARCHIVE/RESTRICTED/SK-BIO/</span><span class="live">DOSTĘP: PRZYZNANY</span></div>
+    <div id="dossierContent"></div>
+  </div>
+
+  <!-- CLOWN GATE -->
+  <div class="pane" id="clownGate">
+    <div class="glitchwrap">
+    <img src="Klaun.png" alt="Klaun" width="200" height="200">
+    </div>
+    <div class="clowntitle">NIEZNANY PROCES PRZEJĄŁ TERMINAL</div>
+    <div class="clownsub">Wszystkie klucze zebrane, lecz coś innego blokuje rekonstrukcję współrzędnych. Aby kontynuować, podaj hasło dostępu.</div>
+    <div class="pwrow">
+      <input type="text" id="clownPass" autocomplete="off" spellcheck="false" placeholder="HASŁO">
+      <button class="term-btn" id="clownSubmit">◤ WPROWADŹ ◢</button>
+    </div>
+    <div class="clownerr" id="clownErr"></div>
+  </div>
+
+  <!-- FINAL REVEAL -->
+  <div class="pane" id="finalReveal">
+    <div class="big">PROTOKÓŁ LOKALIZACYJNY ODBLOKOWANY</div>
+    <div style="max-width:520px; font-size:13px; color:var(--green-dim);">Cztery fragmenty telemetrii zostały scalone. Wygenerowano zestaw współrzędnych powiązanych ze wszystkimi zdeszyfrowanymi aktami.</div>
+    <div class="coords" id="coordsText">75.874119, 126.704193</div>
+    <a class="map-btn" id="mapLink" href="#" target="_blank" rel="noopener">◤ OTWÓRZ NA MAPIE ◢</a>
+  </div>
+
+</div></div>
+
+<script>
+/* ============================================================
+   SKRÓT KLAWISZOWY Pass9 -> przejście do hasła klauna
+============================================================ */
+(function(){
+  var keyBuffer = '';
+  var keyTimer = null;
+  
+  document.addEventListener('keypress', function(e) {
+    // Ignoruj jeśli focus jest już w input
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+      return;
+    }
+    
+    // Pobierz wciśnięty znak
+    var char = String.fromCharCode(e.which || e.keyCode).toLowerCase();
+    
+    if (char) {
+      keyBuffer += char;
+      
+      // Jeśli buffer kończy się na "pass9", przejdź do pola hasła
+      if (keyBuffer.length >= 5 && keyBuffer.slice(-5) === 'pass9') {
+        keyBuffer = '';
+        if (keyTimer) clearTimeout(keyTimer);
+        
+        // Najpierw pokaż ekran klauna jeśli jest ukryty
+        var clownGate = document.getElementById('clownGate');
+        if (clownGate && !clownGate.classList.contains('active')) {
+          // Ukryj wszystkie inne panele
+          var allPanes = document.querySelectorAll('.pane');
+          for (var i = 0; i < allPanes.length; i++) {
+            allPanes[i].classList.remove('active');
+          }
+          // Pokaż panel klauna
+          clownGate.classList.add('active');
+        }
+        
+        // Następnie fokus na pole
+        setTimeout(function() {
+          var clownPassInput = document.getElementById('clownPass');
+          if (clownPassInput) {
+            // Ustaw tabindex jeśli nie ma
+            clownPassInput.setAttribute('tabindex', '0');
+            // Próbuj różne metody
+            clownPassInput.focus();
+            clownPassInput.select();
+            
+            // Dodatkowa próba po chwili
+            setTimeout(function() {
+              clownPassInput.focus();
+              clownPassInput.setSelectionRange(0, clownPassInput.value.length);
+            }, 100);
+          }
+        }, 50);
+        
+        return;
+      }
+      
+      // Ogranicz długość bufora do 20 znaków
+      if (keyBuffer.length > 20) {
+        keyBuffer = keyBuffer.substring(keyBuffer.length - 20);
+      }
+      
+      // Reset bufora po 3 sekundach bezczynności
+      if (keyTimer) clearTimeout(keyTimer);
+      keyTimer = setTimeout(function() {
+        keyBuffer = '';
+      }, 3000);
+    }
+  });
+})();
+
+/* ============================================================
+   BOOT
+============================================================ */
+const bootLines = [
+  ["OK","INICJALIZACJA SYSTEMU..............."],
+  ["OK","ŁADOWANIE STEROWNIKÓW................"],
+  ["OK","NAWIĄZYWANIE POŁĄCZENIA Z SERWEREM........."],
+  ["OK","WERYFIKACJA......................"],
+  ["WARN","WYKRYTO NIEPEŁNY PROFIL BIOMETRYCZNY — TRYB GOŚĆ."],
+  ["OK","MONTOWANIE ARCHIWUM /RESTRICTED/SK-BIO/........"],
+  ["OK","SYNCHRONIZACJA Z REJESTREM OBIEKTÓW ANOMALNYCH....."],
+  ["WARN","4 PLIKI WYKRYTE W KOLEJCE DOSTĘPU......"],
+  ["OK","GOTOWY."]
+];
+const bootLog = document.getElementById('bootLog');
+let li = 0;
+function typeBootLine(){
+  if(li >= bootLines.length){ setTimeout(()=>{ switchPane('boot','browser'); renderFileList(); }, 500); return; }
+  const [status, text] = bootLines[li];
+  const div = document.createElement('div'); div.className='bootline';
+  div.innerHTML = (status==='OK' ? '<span class="ok">[  OK  ]</span>' : '<span class="warn">[ WARN ]</span>') + '  ' + text;
+  bootLog.appendChild(div); li++;
+  setTimeout(typeBootLine, 250 + Math.random()*170);
+}
+setTimeout(typeBootLine, 400);
+
+function switchPane(from, to){
+  document.getElementById(from).classList.remove('active');
+  document.getElementById(to).classList.add('active');
+}
+function rand(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=rand(0,i); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+/* ============================================================
+   DATA: FILES
+============================================================ */
+const FILES = [
+  { id:'2020', name:'Subject 2020 — "Sarkcism"', desc:'ERROR // szyfrowanie: klucz biometryczny', game:'word', fragment:'6' },
+  { id:'610',  name:'SCP-610 — "Red Death"', desc:'SCP-610 // szyfrowanie: sekwencja pól obserwacyjnych', game:'simon', fragment:'7' },
+  { id:'6013', name:'SCP-6013 — "Lewiatan Morza Egejskiego"', desc:'Lewiatan // szyfrowanie: modulacja sygnału Soonsaran', game:'slider', fragment:'5' },
+  { id:'2408', name:'SCP-2408 — "Karnomancja"', desc:'SCP-2408 // szyfrowanie: macierz węzłów bezpieczeństwa', game:'wire', fragment:'8' },
+];
+const state = { unlocked:{}, currentFile:null };
+FILES.forEach(f=> state.unlocked[f.id]=false);
+
+function allDone(){ return FILES.every(f=> state.unlocked[f.id]); }
+
+function renderFileList(){
+  const list = document.getElementById('filelist');
+  list.innerHTML = '';
+  const doneCount = FILES.filter(f=>state.unlocked[f.id]).length;
+  document.getElementById('progressLine').textContent = 'DESZYFROWANO: '+doneCount+' / '+FILES.length+' PLIKÓW';
+
+  FILES.forEach(f=>{
+    const done = state.unlocked[f.id];
+    const div = document.createElement('div');
+    div.className = 'file ' + (done ? 'done' : 'locked');
+    div.innerHTML = `
+      <div class="icon">${done ? '✓' : '⛔'}</div>
+      <div class="meta">
+        <div class="name">${f.name}</div>
+        <div class="desc">${f.desc}</div>
+      </div>
+      <div class="tag">${done ? 'ODSZYFROWANO — klucz: '+f.fragment : 'ZABLOKOWANY'}</div>
+    `;
+    div.addEventListener('click', ()=>{
+      if(done){ showDossier(f.id); } else { launchHack(f.id); }
+    });
+    list.appendChild(div);
+  });
+
+  if(allDone()){
+    const div = document.createElement('div');
+    div.className = 'file special done';
+    div.innerHTML = `
+      <div class="icon">◈</div>
+      <div class="meta">
+        <div class="name">PROTOKÓŁ LOKALIZACYJNY — REKONSTRUKCJA WSPÓŁRZĘDNYCH</div>
+        <div class="desc">wymaga scalenia 4 kluczy pozyskanych z powyższych plików</div>
+      </div>
+      <div class="tag">GOTOWY DO URUCHOMIENIA</div>
+    `;
+    div.addEventListener('click', launchFinalHack);
+    list.appendChild(div);
+  }
+}
+
+/* ============================================================
+   HACK FRAMEWORK
+============================================================ */
+let attemptsLeft = 0, attemptsMax = 0;
+function setupAttempts(n){
+  attemptsMax = n; attemptsLeft = n;
+  const wrap = document.getElementById('attemptsWrap');
+  wrap.innerHTML = 'PRÓBY: ';
+  for(let i=0;i<n;i++){ const p=document.createElement('div'); p.className='pip'; p.id='pip'+i; wrap.appendChild(p); }
+}
+function updatePips(){
+  for(let i=0;i<attemptsMax;i++){
+    const p = document.getElementById('pip'+i);
+    if(p) p.className = 'pip' + (i < (attemptsMax-attemptsLeft) ? ' used' : '');
+  }
+}
+function loseAttempt(onFail){
+  attemptsLeft--; updatePips();
+  if(attemptsLeft<=0){ setTimeout(()=> switchPane('hack','lockedScreen'), 700); return true; }
+  return false;
+}
+let feedEl;
+function feedPush(html, cls){
+  const d=document.createElement('div'); d.className=cls||'sys'; d.innerHTML=html; feedEl.prepend(d);
+}
+function makeFeedCol(){
+  const col = document.createElement('div'); col.className='feedcol';
+  col.innerHTML = '<div class="feedtitle">&gt; DZIENNIK DESZYFROWANIA</div><div id="feedlog"></div>';
+  return col;
+}
+
+function launchHack(fileId){
+  state.currentFile = fileId;
+  const f = FILES.find(x=>x.id===fileId);
+  switchPane('browser','hack');
+  document.getElementById('hackTitle').textContent = '◤ ' + f.name + ' ◢';
+  const area = document.getElementById('hackArea'); area.innerHTML='';
+  const footer = document.getElementById('hackFooter'); footer.innerHTML='';
+  if(f.game==='word') startWordHack(area, footer, fileId);
+  else if(f.game==='simon') startSimonHack(area, footer, fileId);
+  else if(f.game==='slider') startSliderHack(area, footer, fileId);
+  else if(f.game==='wire') startWireHack(area, footer, fileId);
+}
+
+function onHackWin(fileId){
+  state.unlocked[fileId] = true;
+  const f = FILES.find(x=>x.id===fileId);
+  document.getElementById('grantedSub').textContent = 'deszyfrowanie pliku ' + f.name + '...';
+  switchPane('hack','grantedIntro');
+  setTimeout(()=>{ switchPane('grantedIntro','dossier'); showDossier(fileId, true); }, 1500);
+}
+
+/* ============================================================
+   GAME 1 — WORD HACK (Fallout-style) — used for SCP-2020 CARNIS
+============================================================ */
+function startWordHack(area, footer, fileId){
+  setupAttempts(3);
+  const PASSWORD = "CARNIS";
+  const DECOYS = ["FLESHY","ORGANS","MARROW","VESSEL","TISSUE","MUSCLE","ARTERY","CORPSE","CRANIA","CARIES","CANINE","CARBON"];
+  const LEN = PASSWORD.length;
+  const GLYPHS = "!@#$%^&*<>?/|\\~`_+-=;:.,{}[]()01".split("");
+  let duds = [];
+
+  const dumpCol = document.createElement('div'); dumpCol.className='dumpcol';
+  const feedCol = makeFeedCol();
+  area.appendChild(dumpCol); area.appendChild(feedCol);
+  feedEl = feedCol.querySelector('#feedlog');
+  footer.textContent = 'Wybierz sekwencję znaków odpowiadającą kluczowi dostępu. Nawiasy [ ] ( ) { } < > mogą ujawnić narzędzie usuwające błędny klucz (rzadkie).';
+
+  function addr(n){ return "0x"+(0xC000+n).toString(16).toUpperCase().padStart(4,'0'); }
+
+  const words = shuffle([PASSWORD, ...shuffle(DECOYS).slice(0,10)]);
+  const linesCount = 17, lineLen = 46;
+  let cells = [];
+  for(let i=0;i<linesCount*lineLen;i++) cells.push({t:'g', v:GLYPHS[rand(0,GLYPHS.length-1)]});
+  let usedRanges = [];
+  words.forEach(w=>{
+    let placed=false, tries=0;
+    while(!placed && tries<200){ tries++; const pos=rand(0,cells.length-w.length-1);
+      const overlap = usedRanges.some(r=> pos<r.end+2 && pos+w.length+2>r.start);
+      if(!overlap){ for(let k=0;k<w.length;k++) cells[pos+k]={t:'word', v:w[k], word:w}; usedRanges.push({start:pos,end:pos+w.length}); placed=true; }
+    }
+  });
+  const bracketPairs = ["()","[]","{}","<>"];
+  for(let i=0;i<2;i++){
+    let placed=false, tries=0;
+    while(!placed && tries<200){ tries++; const pos=rand(0,cells.length-3);
+      const overlap = usedRanges.some(r=> pos<r.end+2 && pos+3>r.start);
+      if(!overlap && cells[pos].t==='g'){ const bp=bracketPairs[rand(0,3)]; const id='brk'+i;
+        cells[pos]={t:'bopen', v:bp[0], id}; cells[pos+1]={t:'g', v:GLYPHS[rand(0,GLYPHS.length-1)]}; cells[pos+2]={t:'bclose', v:bp[1], id};
+        usedRanges.push({start:pos,end:pos+3}); placed=true; }
+    }
+  }
+
+  let allWordEls = [];
+  for(let r=0;r<linesCount;r++){
+    const row = document.createElement('div'); row.className='rowline';
+    const addrSpan = document.createElement('span'); addrSpan.className='addr'; addrSpan.textContent=addr(r*lineLen)+" ";
+    row.appendChild(addrSpan);
+    for(let c=0;c<lineLen;c++){
+      const cell = cells[r*lineLen+c]; const span = document.createElement('span'); span.textContent=cell.v;
+      if(cell.t==='word'){ span.className='tok word'; span.addEventListener('click', ()=> tryWord(cell.word, span)); allWordEls.push({el:span, word:cell.word}); }
+      else if(cell.t==='bopen'||cell.t==='bclose'){ span.className='tok bracket'; span.dataset.id=cell.id; span.addEventListener('click', ()=> useBracketTool(cell.id)); }
+      else span.className='tok';
+      row.appendChild(span);
+    }
+    dumpCol.appendChild(row);
+  }
+  duds = allWordEls.filter(w=> w.word!==PASSWORD);
+
+  function useBracketTool(id){
+    const els = dumpCol.querySelectorAll('[data-id="'+id+'"]');
+    if(!els.length || els[0].classList.contains('dead')) return;
+    els.forEach(e=> e.classList.add('dead'));
+    if(duds.length){ const idx=rand(0,duds.length-1); const removed=duds[idx]; removed.el.classList.add('dead'); duds.splice(idx,1);
+      feedPush('&gt; NARZĘDZIE UŻYTE.<br>&gt; usunięto błędny klucz: <b>'+removed.word+'</b>', 'like'); }
+    else feedPush('&gt; narzędzie zużyte. brak błędnych kluczy.', 'sys');
+  }
+  function likeness(g,t){ let n=0; for(let i=0;i<t.length;i++) if(g[i]===t[i]) n++; return n; }
+  function tryWord(word, el){
+    if(el.classList.contains('dead')) return;
+    if(word===PASSWORD){
+      feedPush('&gt; PRÓBA: '+word+'<br>&gt; DOPASOWANIE: '+LEN+'/'+LEN, 'good');
+      allWordEls.forEach(w=> w.el.style.pointerEvents='none');
+      setTimeout(()=> onHackWin(fileId), 700);
+      return;
+    }
+    const l = likeness(word, PASSWORD);
+    feedPush('&gt; PRÓBA: '+word+'<br>&gt; DOPASOWANIE: '+l+'/'+LEN, 'like');
+    el.classList.add('wrong'); setTimeout(()=> el.classList.remove('wrong'), 260); el.classList.add('dead');
+    duds = duds.filter(d=> d.el!==el);
+    loseAttempt();
+  }
+  feedPush('&gt; POŁĄCZENIE Z MODUŁEM SZYFRUJĄCYM NAWIĄZANE', 'sys');
+  feedPush('&gt; ZNAJDŹ SEKWENCJĘ DŁUGOŚCI '+LEN+' ZNAKÓW', 'sys');
+}
+
+/* ============================================================
+   GAME 2 — SIMON SEQUENCE — used for SCP-610
+============================================================ */
+function startSimonHack(area, footer, fileId){
+  setupAttempts(3);
+  footer.textContent = 'Zapamiętaj i odtwórz sekwencję pól obserwacyjnych. Osiągnij długość 8, by przełamać blokadę.';
+  const wrap = document.createElement('div'); wrap.className='simonwrap';
+  wrap.innerHTML = `
+    <div class="simonstatus" id="simonStatus">PRZYGOTOWANIE...</div>
+    <div class="simongrid" id="simonGrid">
+      <div class="simontile" data-c="0"></div><div class="simontile" data-c="1"></div><div class="simontile" data-c="2"></div>
+      <div class="simontile" data-c="3"></div><div class="simontile" data-c="4"></div><div class="simontile" data-c="5"></div>
+    </div>
+    <div class="simonround" id="simonRound">RUNDA: 0 / 8</div>
+  `;
+  const feedCol = makeFeedCol();
+  area.appendChild(wrap); area.appendChild(feedCol);
+  feedEl = feedCol.querySelector('#feedlog');
+  feedPush('&gt; SYNCHRONIZACJA CZUJNIKÓW POLA...', 'sys');
+
+  const tiles = wrap.querySelectorAll('.simontile');
+  const NTILES = tiles.length;
+  const TARGET = 8;
+  let sequence = []; let playerPos = 0; let round = 0; let accepting = false;
+
+  function updateRound(){ wrap.querySelector('#simonRound').textContent = 'RUNDA: '+round+' / '+TARGET; }
+
+  async function playSequence(){
+    accepting = false;
+    wrap.querySelector('#simonStatus').textContent = 'OBSERWUJ SEKWENCJĘ...';
+    for(const idx of sequence){
+      await lightTile(idx);
+    }
+    wrap.querySelector('#simonStatus').textContent = 'ODTWÓRZ SEKWENCJĘ';
+    playerPos = 0; accepting = true;
+  }
+  function lightTile(idx){
+    return new Promise(res=>{
+      tiles[idx].classList.add('lit');
+      setTimeout(()=>{ tiles[idx].classList.remove('lit'); setTimeout(res, 140); }, 360);
+    });
+  }
+  tiles.forEach((t,idx)=>{
+    t.addEventListener('click', ()=>{
+      if(!accepting) return;
+      t.classList.add('lit'); setTimeout(()=> t.classList.remove('lit'), 180);
+      if(idx === sequence[playerPos]){
+        playerPos++;
+        if(playerPos === sequence.length){
+          round++; updateRound(); feedPush('&gt; SEKWENCJA POPRAWNA ('+round+'/'+TARGET+')', 'like');
+          if(round>=TARGET){ accepting=false; feedPush('&gt; POLE OBSERWACYJNE ZSYNCHRONIZOWANE', 'good'); setTimeout(()=> onHackWin(fileId), 600); return; }
+          sequence.push(rand(0,NTILES-1));
+          setTimeout(playSequence, 650);
+        }
+      } else {
+        accepting = false;
+        feedPush('&gt; BŁĄD SEKWENCJI — RESET RUNDY', 'bad');
+        const fail = loseAttempt();
+        if(!fail){ round = 0; sequence = [rand(0,NTILES-1)]; updateRound(); setTimeout(playSequence, 900); }
+      }
+    });
+  });
+  sequence = [rand(0,NTILES-1)]; updateRound();
+  setTimeout(playSequence, 900);
+}
+
+/* ============================================================
+   GAME 3 — SIGNAL SLIDER MATCH — used for SCP-6013
+============================================================ */
+function startSliderHack(area, footer, fileId){
+  setupAttempts(4);
+  footer.textContent = 'Dostosuj poziomy modulacji do wzorca sygnału Soonsaran, następnie zsynchronizuj. Zielony = poprawny poziom.';
+  setupAttempts(6);
+  footer.textContent = 'Dostosuj poziomy modulacji tak, by zbliżyć się do niebieskiej linii celu (tolerancja ±1), następnie zsynchronizuj.';
+  const N = 4;
+  const RANGE = 6;
+  const TOL = 1;
+  const target = Array.from({length:N}, ()=> rand(2,RANGE-1));
+  let current = Array.from({length:N}, ()=> rand(1,RANGE));
+
+  const wrap = document.createElement('div'); wrap.className='sliderwrap';
+  const barrow = document.createElement('div'); barrow.className='barrow';
+  wrap.appendChild(barrow);
+  const btn = document.createElement('button'); btn.className='sliderbtn'; btn.textContent='◤ SYNCHRONIZUJ ◢';
+  wrap.appendChild(btn);
+
+  const feedCol = makeFeedCol();
+  area.appendChild(wrap); area.appendChild(feedCol);
+  feedEl = feedCol.querySelector('#feedlog');
+  feedPush('&gt; ODEBRANO WZORZEC SYGNAŁU. DOSTOSUJ MODULATORY.', 'sys');
+  feedPush('&gt; NIEBIESKA LINIA WSKAZUJE PRZYBLIŻONY CEL (±1)', 'sys');
+
+  const unit = 140/RANGE;
+  const fills = []; const hints = [];
+  for(let i=0;i<N;i++){
+    const col = document.createElement('div'); col.className='barcol';
+    const track = document.createElement('div'); track.className='bartrack';
+    const mark = document.createElement('div'); mark.className='targetmark'; mark.style.bottom=(target[i]*unit)+'px';
+    const fill = document.createElement('div'); fill.className='barfill'; fill.style.height=(current[i]*unit)+'px';
+    track.appendChild(fill); track.appendChild(mark);
+    const hint = document.createElement('div'); hint.style.cssText='font-size:11px; color:var(--green-dim); height:14px;'; hint.textContent='';
+    const btns = document.createElement('div'); btns.className='barbtns';
+    const up = document.createElement('button'); up.textContent='+';
+    const down = document.createElement('button'); down.textContent='-';
+    up.addEventListener('click', ()=>{ if(current[i]<RANGE){ current[i]++; fill.style.height=(current[i]*unit)+'px'; } });
+    down.addEventListener('click', ()=>{ if(current[i]>1){ current[i]--; fill.style.height=(current[i]*unit)+'px'; } });
+    btns.appendChild(down); btns.appendChild(up);
+    col.appendChild(hint); col.appendChild(track); col.appendChild(btns);
+    barrow.appendChild(col);
+    fills.push(fill); hints.push(hint);
+  }
+
+  btn.addEventListener('click', ()=>{
+    let allCorrect = true;
+    for(let i=0;i<N;i++){
+      const diff = current[i]-target[i];
+      if(Math.abs(diff)<=TOL){ fills[i].classList.remove('wrong'); fills[i].classList.add('correct'); hints[i].textContent='✓'; }
+      else { fills[i].classList.remove('correct'); fills[i].classList.add('wrong'); allCorrect=false; hints[i].textContent = diff<0 ? '▲ za nisko' : '▼ za wysoko'; }
+    }
+    const matches = current.filter((v,i)=> Math.abs(v-target[i])<=TOL).length;
+    if(allCorrect){
+      feedPush('&gt; DOPASOWANIE: '+N+'/'+N+' — SYGNAŁ ZSYNCHRONIZOWANY', 'good');
+      btn.disabled = true;
+      setTimeout(()=> onHackWin(fileId), 700);
+    } else {
+      feedPush('&gt; DOPASOWANIE: '+matches+'/'+N+' modulatorów w normie', 'like');
+      loseAttempt();
+    }
+  });
+}
+
+/* ============================================================
+   GAME 4 — WIRE / NODE MATCH — used for SCP-2408
+============================================================ */
+function startWireHack(area, footer, fileId){
+  setupAttempts(3);
+  footer.textContent = 'Połącz odpowiadające sobie węzły bezpieczeństwa po obu stronach macierzy.';
+  const colors = ['#3fd93f','#ffb000','#a3231f','#7fd1ff','#c77dff'];
+  const labels = ['A','B','C','D','E'];
+  const leftOrder = shuffle([0,1,2,3,4]);
+  const rightOrder = shuffle([0,1,2,3,4]);
+
+  const wrap = document.createElement('div'); wrap.className='wirewrap';
+  const grid = document.createElement('div'); grid.className='wiregrid';
+  const leftCol = document.createElement('div'); leftCol.className='wirecolset';
+  const rightCol = document.createElement('div'); rightCol.className='wirecolset';
+  grid.appendChild(leftCol); grid.appendChild(rightCol);
+  wrap.appendChild(grid);
+
+  const feedCol = makeFeedCol();
+  area.appendChild(wrap); area.appendChild(feedCol);
+  feedEl = feedCol.querySelector('#feedlog');
+  feedPush('&gt; ZAŁADOWANO MACIERZ WĘZŁÓW BEZPIECZEŃSTWA', 'sys');
+
+  let selectedLeft = null;
+  let doneCount = 0;
+
+  leftOrder.forEach(ci=>{
+    const n = document.createElement('div'); n.className='wirenode'; n.style.borderColor=colors[ci]; n.style.background='transparent'; n.style.color=colors[ci];
+    n.textContent = labels[ci]; n.dataset.color = ci;
+    n.addEventListener('click', ()=>{
+      if(n.classList.contains('done')) return;
+      leftCol.querySelectorAll('.wirenode').forEach(e=> e.classList.remove('selected'));
+      n.classList.add('selected'); selectedLeft = n;
+    });
+    leftCol.appendChild(n);
+  });
+  rightOrder.forEach(ci=>{
+    const n = document.createElement('div'); n.className='wirenode'; n.style.borderColor=colors[ci]; n.style.background='transparent'; n.style.color=colors[ci];
+    n.textContent = labels[ci]; n.dataset.color = ci;
+    n.addEventListener('click', ()=>{
+      if(n.classList.contains('done') || !selectedLeft) return;
+      if(String(n.dataset.color) === String(selectedLeft.dataset.color)){
+        n.classList.add('done'); selectedLeft.classList.add('done');
+        feedPush('&gt; WĘZEŁ '+n.textContent+' POŁĄCZONY POPRAWNIE', 'like');
+        selectedLeft = null; doneCount++;
+        if(doneCount>=5){ feedPush('&gt; MACIERZ ZABEZPIECZEŃ OBEJŚCIONA', 'good'); setTimeout(()=> onHackWin(fileId), 700); }
+      } else {
+        feedPush('&gt; NIEZGODNOŚĆ WĘZŁÓW — POŁĄCZENIE ODRZUCONE', 'bad');
+        selectedLeft.classList.remove('selected'); selectedLeft = null;
+        loseAttempt();
+      }
+    });
+    rightCol.appendChild(n);
+  });
+}
+
+/* ============================================================
+   GAME 5 — FINAL DIAL LOCK (location) — combines all fragments
+============================================================ */
+function launchFinalHack(){
+  switchPane('browser','hack');
+  document.getElementById('hackTitle').textContent = '◤ REKONSTRUKCJA WSPÓŁRZĘDNYCH ◢';
+  const area = document.getElementById('hackArea'); area.innerHTML='';
+  const footer = document.getElementById('hackFooter'); footer.innerHTML='';
+  setupAttempts(3);
+  footer.textContent = 'Ustaw cyfry zgodnie z kluczami pozyskanymi z odszyfrowanych plików, następnie zatwierdź.';
+
+  const code = FILES.map(f=> f.fragment);
+  let values = [0,0,0,0];
+
+  const outer = document.createElement('div'); outer.style.cssText='flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;';
+  const wrap = document.createElement('div'); wrap.className='dialwrap'; wrap.style.flex='0';
+  const dials = [];
+  code.forEach((digit, i)=>{
+    const d = document.createElement('div'); d.className='dial';
+    const dg = document.createElement('div'); dg.className='digit'; dg.textContent='0';
+    const up = document.createElement('button'); up.textContent='▲';
+    const down = document.createElement('button'); down.textContent='▼';
+    up.addEventListener('click', ()=>{ values[i]=(values[i]+1)%10; dg.textContent=values[i]; });
+    down.addEventListener('click', ()=>{ values[i]=(values[i]+9)%10; dg.textContent=values[i]; });
+    d.appendChild(up); d.appendChild(dg); d.appendChild(down);
+    wrap.appendChild(d); dials.push({dg});
+  });
+  const btn = document.createElement('button'); btn.className='sliderbtn'; btn.textContent='◤ ZATWIERDŹ KOD ◢';
+  outer.appendChild(wrap); outer.appendChild(btn);
+
+  const feedCol = makeFeedCol();
+  area.appendChild(outer); area.appendChild(feedCol);
+  feedEl = feedCol.querySelector('#feedlog');
+  feedPush('&gt; ZEBRANO 4 KLUCZE Z PLIKÓW ARCHIWUM', 'sys');
+  feedPush('&gt; PRZYPOMNIENIE: klucze widoczne w archiwum przy każdym odszyfrowanym pliku', 'sys');
+
+  btn.addEventListener('click', ()=>{
+    let correct = 0;
+    dials.forEach((d,i)=>{
+      if(String(values[i]) === code[i]){ d.dg.classList.add('correct'); correct++; }
+      else d.dg.classList.remove('correct');
+    });
+    if(correct === code.length){
+      feedPush('&gt; KOD ZATWIERDZONY — WSPÓŁRZĘDNE ODSZYFROWANE', 'good');
+      setTimeout(()=>{
+        switchPane('hack','grantedIntro');
+        document.getElementById('grantedSub').textContent = 'rekonstrukcja danych telemetrycznych...';
+        setTimeout(()=>{
+          document.getElementById('mapLink').href='https://maps.app.goo.gl/Zo4EKD1svyEJS2RXA';
+          switchPane('grantedIntro','clownGate');
+          document.getElementById('clownPass').value='';
+          document.getElementById('clownErr').textContent='';
+          setTimeout(()=> document.getElementById('clownPass').focus(), 300);
+        }, 1500);
+      }, 700);
+    } else {
+      feedPush('&gt; POPRAWNYCH CYFR: '+correct+'/'+code.length, 'like');
+      loseAttempt();
+    }
+  });
+}
+
+/* ============================================================
+   CLOWN GATE — password check via SHA-256 (plaintext never stored client-side)
+============================================================ */
+const CLOWN_PASS_HASH = 'cb89f3f2ca469e88135eb874daf910dc90ffa5f79ac19b640bed5fdde24a24c6';
+
+async function sha256Hex(str){
+  const enc = new TextEncoder().encode(str);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b=> b.toString(16).padStart(2,'0')).join('');
+}
+
+async function checkClownPassword(){
+  const input = document.getElementById('clownPass');
+  const err = document.getElementById('clownErr');
+  const val = input.value.trim();
+  if(!val){ err.textContent = 'WPROWADŹ HASŁO.'; return; }
+  const hash = await sha256Hex(val);
+  if(hash === CLOWN_PASS_HASH){
+    err.style.color = 'var(--green)';
+    err.textContent = 'HASŁO POPRAWNE.';
+    setTimeout(()=> switchPane('clownGate','finalReveal'), 500);
+  } else {
+    err.style.color = 'var(--blood)';
+    err.textContent = 'HASŁO NIEPOPRAWNE — SPRÓBUJ PONOWNIE.';
+    input.value = '';
+    input.focus();
+  }
+}
+document.getElementById('clownSubmit').addEventListener('click', checkClownPassword);
+document.getElementById('clownPass').addEventListener('keydown', (e)=>{ if(e.key==='Enter') checkClownPassword(); });
+
+/* ============================================================
+   DOSSIERS
+============================================================ */
+const DOSSIERS = {
+'2020': {
+  path:'/ARCHIVE/RESTRICTED/BIO-CLASS/2020-CARNIS.decrypted',
+  html:`
+    <div class="dossier-head"><h1>SUBJECT 2020 — "CARNIS"</h1><div class="objclass">KLASA OBIEKTU<br><b>KETER</b></div></div>
+    <div class="dossier">
+      <h2>PROCEDURY SPECJALNEGO PRZETRZYMANIA</h2>
+      <p>Subject 2020 jest przetrzymywany w komorze biologicznej C-19 wyłożonej stopem odpornym na trawienie enzymatyczne. Komora utrzymywana jest w stałej temperaturze 4°C, co ogranicza tempo regeneracji tkanki obiektu do poziomu poniżej progu krytycznego.</p>
+      <p>Dostarczanie biomasy odbywa się wyłącznie przez zdalnie sterowany podajnik. Bezpośredni kontakt fizyczny z Subject 2020 jest surowo zabroniony.</p>
+      <h2>OPIS</h2>
+      <p>Subject 2020 "Carnis" to bezkształtna masa tkanki organicznej o nieustalonym pochodzeniu, zdolna do ciągłej regeneracji i powolnej reorganizacji własnej struktury. Analiza histologiczna wykazuje obecność komórek charakterystycznych dla wielu gatunków jednocześnie.</p>
+      <p>Fragmenty odcięte od głównej masy zachowują zdolność do niezależnego, powolnego ruchu przez okres do 72 godzin — jakby cały obiekt współdzielił jedną, rozproszoną świadomość.</p>
+      <div class="fragmentbox">KLUCZ POZYSKANY: <b>6</b> — wymagany do rekonstrukcji lokalizacji</div>
+      <div class="footer-stamp">— PLIK WEWNĘTRZNY SITE-19 —</div>
+    </div>`
+},
+'610': {
+  path:'/ARCHIVE/RESTRICTED/BIO-CLASS/610-PLAGA.decrypted',
+  html:`
+    <div class="dossier-head"><h1>SCP-610 — "Plaga Ciała"</h1><div class="objclass">KLASA OBIEKTU<br><b>KETER</b></div></div>
+    <div class="dossier">
+      <h2>PROCEDURY SPECJALNEGO PRZETRZYMANIA</h2>
+      <p>Ze względu na rozległość obszaru "infekcji", pełne przetrzymanie SCP-610 jest niemożliwe. Zamiast tego stosuje się izolację regionu w okolicach jeziora Bajkał w południowej Syberii, prowadzoną pod pozorem operacji wojskowej.</p>
+      <p>Każdy organizm wykazujący cechy zakażenia jest neutralizowany z dystansu bronią palną, a następnie spalany. Jakikolwiek fizyczny kontakt z zakażonym skutkuje natychmiastową eliminacją i kremacją.</p>
+      <h2>OPIS</h2>
+      <p>SCP-610 to zaraźliwa choroba skóry, która w ciągu kilku godzin pokrywa ofiarę bliznowatą tkanką, zatrzymuje funkcje życiowe na około trzy minuty, po czym "restartuje" ciało w stanie znacznie przyspieszonej aktywności.</p>
+      <p>Zainfekowani zaczynają następnie rosnąć w nieprzewidywalny sposób — dodatkowe kończyny, zniekształcone czaszki, rozgałęzienia tkanki — zanim ostatecznie zakorzenią się w jednym miejscu i zaczną porastać otoczenie, tworząc środowisko sprzyjające dalszemu rozrostowi kolonii.</p>
+      <p>Pod porośniętymi osadami odkryto rozległe jaskinie, do których eksploracji wciąż trwają przygotowania personelu badawczego.</p>
+      <div class="fragmentbox">KLUCZ POZYSKANY: <b>7</b> — wymagany do rekonstrukcji lokalizacji</div>
+      <div class="footer-stamp">na podstawie artykułu "SCP-610" (autor: NekoChris, SCP Wiki, CC BY-SA 3.0)</div>
+    </div>`
+},
+'6013': {
+  path:'/ARCHIVE/RESTRICTED/BIO-CLASS/6013-LEWIATAN.decrypted',
+  html:`
+    <div class="dossier-head"><h1>SCP-6013 — "Lewiatan Morza Egejskiego"</h1><div class="objclass">KLASA OBIEKTU<br><b>KETER</b></div></div>
+    <div class="dossier">
+      <h2>NOTA WSTĘPNA</h2>
+      <p>Dostęp do pełnej dokumentacji Protokołu Rosetta zastrzeżony jest dla personelu poziomu 4 oraz jednostek Sitra Achra. Poniższy wyciąg stanowi jedynie streszczenie ogólnego kontekstu operacyjnego.</p>
+      <h2>OPIS</h2>
+      <p>SCP-6013, kryptonim "Alkonost", to inteligentna, wrogo nastawiona makroforma zamieszkująca dno Morza Karskiego, odkryta pierwotnie przez radziecki program badawczy w latach 70. Obiekt komunikuje się w złożonym języku określanym jako Soonsaran — kombinacji sygnałów dźwiękowych i świetlnych o charakterze religijnym, bliżej modlitwy i groźby niż rozmowy.</p>
+      <p>Placówka Site-82 utrzymuje stały zespół tłumaczy, naukowców i negocjatorów, których zadaniem jest interpretacja przekazów obiektu oraz opóźnianie realizacji jego pierwotnego przeznaczenia — przekształcenia światowych oceanów w środowisko nieprzyjazne znanym formom życia.</p>
+      <p>Kontakt z SCP-6013 wiąże się z poważnym ryzykiem psychologicznym i fizycznym dla personelu; obiekt zdolny jest wpływać na zachowanie osób znajdujących się w jego bezpośrednim otoczeniu.</p>
+      <div class="fragmentbox">KLUCZ POZYSKANY: <b>5</b> — wymagany do rekonstrukcji lokalizacji</div>
+      <div class="footer-stamp">na podstawie artykułu "SCP-6013" (autor: Rhys Tanner, SCP Wiki, CC BY-SA 3.0)</div>
+    </div>`
+},
+'2408': {
+  path:'/ARCHIVE/RESTRICTED/BIO-CLASS/2408-CZARNALOZA.decrypted',
+  html:`
+    <div class="dossier-head"><h1>SCP-2408 — "Czarna Loża Łowców"</h1><div class="objclass">KLASA OBIEKTU<br><b>KETER</b></div></div>
+    <div class="dossier">
+      <h2>PROCEDURY SPECJALNEGO PRZETRZYMANIA</h2>
+      <p>Fundacja infiltruje organy ścigania na obszarach podejrzewanych o działalność GoI-0432. Grupa Zadaniowa Psi-13 ("Łowcy Czarownic") odpowiada za identyfikację i eliminację jej członków; ujęci żywcem podlegają przesłuchaniu przed eliminacją.</p>
+      <p>Grupa Zadaniowa Psi-9 ("Patrzący w Otchłań") zabezpiecza podziemny kompleks SCP-2408-3 pod Moskwą — osoby próbujące uzyskać nieautoryzowany dostęp mają być eliminowane na miejscu.</p>
+      <h2>OPIS</h2>
+      <p>SCP-2408 obejmuje szereg anomalii powiązanych z GoI-0432, przestępczo-kultową organizacją sarkicką działającą głównie na terenach postradzieckich. Jej członkowie (SCP-2408-1) są zdolni do gwałtownej fizycznej transformacji — wzrostu masy mięśniowej, gęstości kości oraz pojawienia się cech zwierzęcych (wilcze, kozie, niedźwiedzie i inne), przy zachowaniu zdolności odwrócenia zmian.</p>
+      <p>Organizacja handluje anomalnymi substancjami pozyskiwanymi z organizmu SCP-2408-4 — humanoidalnej istoty o długości około 300 metrów, odnalezionej pod megalityczną świątynią SCP-2408-3 głęboko pod Moskwą. Istota pozostaje unieruchomiona, prawdopodobnie martwa mózgowo, lecz częściowo wciąż się regeneruje.</p>
+      <p>Dochodzenie prowadzone w ramach OPERACJI FALKENRATH ujawniło rytualny, hierarchiczny charakter organizacji oraz istnienie starożytnej osady sarkickiej pod nazwą "Upadek Oroka", na której gruzach zbudowano współczesną Moskwę.</p>
+      <div class="fragmentbox">KLUCZ POZYSKANY: <b>8</b> — wymagany do rekonstrukcji lokalizacji</div>
+      <div class="footer-stamp">na podstawie artykułu "SCP-2408" (autor: Metaphysician, SCP Wiki, CC BY-SA 3.0)</div>
+    </div>`
+}
+};
+
+function showDossier(fileId, fromHack){
+  const d = DOSSIERS[fileId];
+  document.getElementById('dossierPath').textContent = d.path;
+  const c = document.getElementById('dossierContent');
+  c.innerHTML = d.html + '<div class="dossierBackBtn"><button class="term-btn" id="backToArchive">◤ POWRÓT DO ARCHIWUM ◢</button></div>';
+  document.getElementById('backToArchive').addEventListener('click', ()=>{
+    switchPane('dossier','browser'); renderFileList();
+  });
+  if(!fromHack) switchPane('browser','dossier');
+}
+</script>
+</body>
+</html>
