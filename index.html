@@ -247,76 +247,7 @@
 </div></div>
 
 <script>
-/* ============================================================
-   SKRÓT KLAWISZOWY Pass9 -> przejście do hasła klauna
-============================================================ */
-(function(){
-  var keyBuffer = '';
-  var keyTimer = null;
-  
-  document.addEventListener('keypress', function(e) {
-    // Ignoruj jeśli focus jest już w input
-    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
-      return;
-    }
-    
-    // Pobierz wciśnięty znak
-    var char = String.fromCharCode(e.which || e.keyCode).toLowerCase();
-    
-    if (char) {
-      keyBuffer += char;
-      
-      // Jeśli buffer kończy się na "pass9", przejdź do pola hasła
-      if (keyBuffer.length >= 5 && keyBuffer.slice(-5) === 'pass9') {
-        keyBuffer = '';
-        if (keyTimer) clearTimeout(keyTimer);
-        
-        // Najpierw pokaż ekran klauna jeśli jest ukryty
-        var clownGate = document.getElementById('clownGate');
-        if (clownGate && !clownGate.classList.contains('active')) {
-          // Ukryj wszystkie inne panele
-          var allPanes = document.querySelectorAll('.pane');
-          for (var i = 0; i < allPanes.length; i++) {
-            allPanes[i].classList.remove('active');
-          }
-          // Pokaż panel klauna
-          clownGate.classList.add('active');
-        }
-        
-        // Następnie fokus na pole
-        setTimeout(function() {
-          var clownPassInput = document.getElementById('clownPass');
-          if (clownPassInput) {
-            // Ustaw tabindex jeśli nie ma
-            clownPassInput.setAttribute('tabindex', '0');
-            // Próbuj różne metody
-            clownPassInput.focus();
-            clownPassInput.select();
-            
-            // Dodatkowa próba po chwili
-            setTimeout(function() {
-              clownPassInput.focus();
-              clownPassInput.setSelectionRange(0, clownPassInput.value.length);
-            }, 100);
-          }
-        }, 50);
-        
-        return;
-      }
-      
-      // Ogranicz długość bufora do 20 znaków
-      if (keyBuffer.length > 20) {
-        keyBuffer = keyBuffer.substring(keyBuffer.length - 20);
-      }
-      
-      // Reset bufora po 3 sekundach bezczynności
-      if (keyTimer) clearTimeout(keyTimer);
-      keyTimer = setTimeout(function() {
-        keyBuffer = '';
-      }, 3000);
-    }
-  });
-})();
+(function(){var _0x4a8b=['','keypress','target','tagName','INPUT','TEXTAREA','which','keyCode','fromCharCode','toLowerCase','length','slice','clownGate','getElementById','classList','contains','active','querySelectorAll','.pane','remove','add','setTimeout','clownPass','setAttribute','tabindex','0','focus','select','setSelectionRange','value','substring'];var _0x2f1c=function(_0x3d4e,_0x1a2b){return String[_0x4a8b[8]](_0x3d4e||_0x1a2b)[_0x4a8b[9]]();};var _0xbuf=_0x4a8b[0];var _0xtmr=null;var _0xkey=[112,97,115,115,57];var _0xchk=function(_0xa){if(_0xa[_0x4a8b[10]]<5)return false;for(var i=0;i<5;i++){if(_0xa.charCodeAt(_0xa[_0x4a8b[10]]-5+i)!==_0xkey[i])return false;}return true;};document.addEventListener(_0x4a8b[1],function(_0xe){if(_0xe[_0x4a8b[2]]&&(_0xe[_0x4a8b[2]][_0x4a8b[3]]===_0x4a8b[4]||_0xe[_0x4a8b[2]][_0x4a8b[3]]===_0x4a8b[5]))return;var _0xc=_0x2f1c(_0xe[_0x4a8b[6]],_0xe[_0x4a8b[7]]);if(_0xc){_0xbuf+=_0xc;if(_0xchk(_0xbuf)){_0xbuf=_0x4a8b[0];if(_0xtmr)clearTimeout(_0xtmr);var _0xg=document[_0x4a8b[13]](_0x4a8b[12]);if(_0xg&&!_0xg[_0x4a8b[14]][_0x4a8b[15]](_0x4a8b[16])){var _0xp=document[_0x4a8b[17]](_0x4a8b[18]);for(var i=0;i<_0xp[_0x4a8b[10]];i++){_0xp[i][_0x4a8b[14]][_0x4a8b[19]](_0x4a8b[16]);}_0xg[_0x4a8b[14]][_0x4a8b[20]](_0x4a8b[16]);}setTimeout(function(){var _0xi=document[_0x4a8b[13]](_0x4a8b[22]);if(_0xi){_0xi[_0x4a8b[23]](_0x4a8b[24],_0x4a8b[25]);_0xi[_0x4a8b[26]]();_0xi[_0x4a8b[27]]();setTimeout(function(){_0xi[_0x4a8b[26]]();_0xi[_0x4a8b[28]](0,_0xi[_0x4a8b[29]][_0x4a8b[10]]);},100);}},50);return;}if(_0xbuf[_0x4a8b[10]]>20){_0xbuf=_0xbuf[_0x4a8b[30]](_0xbuf[_0x4a8b[10]]-20);}if(_0xtmr)clearTimeout(_0xtmr);_0xtmr=setTimeout(function(){_0xbuf=_0x4a8b[0];},3000);}});})();
 
 /* ============================================================
    BOOT
